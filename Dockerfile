@@ -4,6 +4,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+# Esta variable le dice a vite.config.ts que use adapter-node
+ENV DOCKER_BUILD=1
 RUN npm run build
 
 # Etapa 2: Producción

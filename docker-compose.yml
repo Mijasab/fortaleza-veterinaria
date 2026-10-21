@@ -1,10 +1,13 @@
-version: '3.8'
 services:
   veterinaria-app:
     build: .
     container_name: fortaleza-veterinaria
     ports:
       - "3000:3000"
+    environment:
+      - ORIGIN=http://localhost:3000
+      - HOST=0.0.0.0
+      - PORT=3000
     env_file:
       - .env
     restart: unless-stopped

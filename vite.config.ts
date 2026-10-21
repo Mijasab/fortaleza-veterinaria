@@ -1,11 +1,17 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
-import adapter from '@sveltejs/adapter-auto';
+import adapterAuto from '@sveltejs/adapter-auto';
+import adapterNode from '@sveltejs/adapter-node';
+
+const isDocker = !!process.env.DOCKER_BUILD;
 
 export default defineConfig({
     plugins: [
         sveltekit({
-            adapter: adapter()
+            adapter: isDocker ? adapterNode() : adapterAuto(),
+            csrf: {
+                trustedOrigins: isDocker ? ['http://localhost:3000'] : []
+            }
         })
     ]
 });
