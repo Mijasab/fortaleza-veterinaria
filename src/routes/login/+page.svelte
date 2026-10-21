@@ -9,12 +9,18 @@
     <title>Iniciar sesión - Fortaleza Veterinaria</title>
 </svelte:head>
 
+    <!-- Barra Superior Azul -->
+        <header style="background-color: #1e3a8a; color: white; padding: 1rem 2rem;">
+            <h1 style="margin: 0; font-size: 1.2rem;">Fortaleza Veterinaria: sistema web de gestión</h1>
+        </header>
+
 <main style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f3f4f6; font-family: sans-serif;">
     
+    
+
     <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 400px;">
         
         <h2 style="margin-top: 0; color: #1e3a8a;">Iniciar sesión</h2>
-        <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 1.5rem;">Pantalla IU-01, caso de uso CU-01, requisito FR-01</p>
 
         <!-- Alerta de credenciales no válidas -->
         {#if form?.error}
@@ -23,8 +29,12 @@
             </div>
         {/if}
 
+            
+
         <form method="POST" use:enhance style="display: flex; flex-direction: column; gap: 1rem;">
             
+            
+
             <!-- Campo Usuario -->
             <div>
                 <label for="usuario" style="display: block; font-size: 0.85rem; color: #4b5563; margin-bottom: 0.25rem;">Nombre de usuario</label>

@@ -8,7 +8,7 @@
 
     // Filtra basándose solo cuando terminoBusqueda se actualiza al dar clic
     let propietariosFiltrados = $derived(
-        data.propietarios.filter(p => p.nombre_completo.toLowerCase().includes(terminoBusqueda.toLowerCase()))
+        data.propietarios.filter((p: { nombre_completo: string }) => p.nombre_completo.toLowerCase().includes(terminoBusqueda.toLowerCase()))
     );
 
     // Función que se dispara al presionar el botón "Buscar"
@@ -54,7 +54,6 @@
     <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 900px; margin: 0 auto; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         
         <h2 style="color: #111827; margin-top: 0; font-size: 1.5rem; margin-bottom: 0.25rem;">Gestión de propietarios</h2>
-        <p style="font-size: 0.85rem; color: #6b7280; margin-top: 0; margin-bottom: 1.5rem;">Pantalla IU-02, caso de uso CU-02, requisito FR-02</p>
 
         <!-- Bloque 1: Búsqueda y Tabla -->
         <div style="border: 1px dashed #d1d5db; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
@@ -134,7 +133,23 @@
                         </div>
                         <div>
                             <label for="telefono" style="display: block; font-size: 0.85rem; color: #4b5563; margin-bottom: 0.5rem;">Teléfono *</label>
-                            <input type="text" id="telefono" name="telefono" required style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box;" />
+                            <!-- INPUT DE REGISTRO MEJORADO -->
+                            <input 
+                            type="text" 
+                            inputmode="numeric"
+                            id="telefono" 
+                            name="telefono" 
+                            required 
+                            minlength="8"
+                            maxlength="8" 
+                            title="Ingrese exactamente 8 dígitos numéricos" 
+                            placeholder="Ej: 88889999" 
+                            oninput={(event) => {
+                                const input = event.currentTarget;
+                                input.value = input.value.replace(/[^0-9]/g, '');
+                            }}
+                            style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box;" 
+                        />
                         </div>
                     </div>
 
@@ -147,7 +162,7 @@
         {/if}
     </div>
 
-    <!-- Modales de Ver y Modificar se mantienen exactamente igual... -->
+    <!-- Modales de Ver y Modificar -->
     {#if viendoDetalle}
         <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 50;">
             <div style="background: white; padding: 2rem; border-radius: 8px; width: 100%; max-width: 450px;">
@@ -162,7 +177,7 @@
                     {#if propViendo.mascotasAsociadas && propViendo.mascotasAsociadas.length > 0}
                         <ul style="padding-left: 1.5rem; color: #4b5563; margin-bottom: 0;">
                             {#each propViendo.mascotasAsociadas as mascota}
-                                <li style="margin-bottom: 0.25rem;"><strong>{mascota.nombre}</strong> - {mascota.especie} ({mascota.raza || 'N/A'})</li>
+                                <li style="margin-bottom: 0.25rem;"><strong>{mascota.nombre}</strong> {mascota.especie} ({mascota.raza || 'N/A'})</li>
                             {/each}
                         </ul>
                     {:else}
@@ -186,7 +201,15 @@
                     <div style="background-color: #fee2e2; color: #b91c1c; padding: 0.75rem; border: 1px solid #f87171; border-radius: 4px; margin-bottom: 1rem;">{form.errorEditar}</div>
                 {/if}
 
-                <form method="POST" action="?/modificar" use:enhance={() => { return async ({ update }) => { await update(); cancelarEdicion(); }; }}>
+                <form method="POST" action="?/modificar" use:enhance={() => {
+                        return async ({ update, result }) => {
+                            await update();
+                            // Solo cerramos el modal si la actualización fue exitosa y no devolvió errores (fail)
+                            if (result.type === 'success') {
+                                cancelarEdicion();
+                            }
+                        };
+                    }}>
                     <input type="hidden" name="id_propietario" value={propEditado.id_propietario} />
                     <div style="display: grid; gap: 1rem; margin-top: 1rem;">
                         <div>
@@ -195,7 +218,23 @@
                         </div>
                         <div>
                             <label for="mod_telefono" style="display: block; font-size: 0.85rem; color: #4b5563;">Teléfono *</label>
-                            <input type="text" id="mod_telefono" name="telefono" value={propEditado.telefono} required style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box;" />
+                            <!-- INPUT DE MODIFICAR MEJORADO -->
+                            <input 
+                            type="text" 
+                            inputmode="numeric"
+                            id="mod_telefono" 
+                            name="telefono" 
+                            value={propEditado.telefono} 
+                            required 
+                            minlength="8"
+                            maxlength="8" 
+                            title="Ingrese exactamente 8 dígitos numéricos" 
+                            oninput={(event) => {
+                                const input = event.currentTarget;
+                                input.value = input.value.replace(/[^0-9]/g, '');
+                            }}
+                            style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box;" 
+                        />
                         </div>
                     </div>
                     <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem; justify-content: flex-end;">

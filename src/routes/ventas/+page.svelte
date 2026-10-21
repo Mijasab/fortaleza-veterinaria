@@ -124,7 +124,6 @@
     <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 950px; margin: 0 auto; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         
         <h2 style="color: #111827; margin-top: 0; font-size: 1.5rem; margin-bottom: 0.25rem;">Registro de ventas</h2>
-        <p style="font-size: 0.85rem; color: #6b7280; margin-top: 0; margin-bottom: 1.5rem;">Pantalla IU-08, caso de uso CU-12, requisito FR-09</p>
 
         <!-- SECCIÓN 1: Agregar a la Venta -->
         <div style="border: 1px dashed #d1d5db; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
@@ -187,8 +186,8 @@
                             <td style="padding: 0.75rem; color: #4b5563;">{item.nombre}</td>
                             <td style="padding: 0.75rem; color: #4b5563;">{item.tipo}</td>
                             <td style="padding: 0.75rem; color: #4b5563;">{item.cantidad}</td>
-                            <td style="padding: 0.75rem; color: #4b5563;">{item.precio}</td>
-                            <td style="padding: 0.75rem; color: #4b5563;">{item.subtotal}</td>
+                            <td style="padding: 0.75rem; color: #4b5563;">C${item.precio}</td>
+                            <td style="padding: 0.75rem; color: #4b5563;">C${item.subtotal}</td>
                             <td style="padding: 0.75rem;">
                                 <button type="button" onclick={() => quitarElemento(i)} style="background: none; border: none; color: #1e3a8a; cursor: pointer; padding: 0; font-weight: 500;">Quitar</button>
                             </td>
@@ -201,7 +200,7 @@
                 </tbody>
             </table>
 
-            <h3 style="color: #111827; margin-bottom: 2rem; font-size: 1.1rem;">Importe total: {importeTotal}</h3>
+            <h3 style="color: #111827; margin-bottom: 2rem; font-size: 1.1rem;">Importe total: C${importeTotal}</h3>
 
             <!-- Formulario Final que envía todo al backend -->
             <form method="POST" action="?/confirmarVenta" use:enhance={submitVenta}>

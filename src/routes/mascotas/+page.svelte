@@ -6,7 +6,7 @@
     let inputBusqueda = $state(''); 
     let terminoBusqueda = $state(''); 
     let mascotasFiltradas = $derived(
-        data.mascotas.filter(m => m.nombre.toLowerCase().includes(terminoBusqueda.toLowerCase()))
+        data.mascotas.filter((m: { nombre: string }) => m.nombre.toLowerCase().includes(terminoBusqueda.toLowerCase()))
     );
 
     function realizarBusqueda() {
@@ -19,10 +19,10 @@
     // --- SOLUCIÓN DE ESCALABILIDAD (Autocompletado de Propietarios) ---
     // Variables para buscar y enlazar el ID del dueño sin usar un <select> gigante
     let inputPropRegistro = $state('');
-    let idPropRegistro = $derived(data.propietarios.find(p => p.nombre_completo === inputPropRegistro)?.id_propietario || '');
+    let idPropRegistro = $derived(data.propietarios.find((p: { nombre_completo: string; id_propietario: number }) => p.nombre_completo === inputPropRegistro)?.id_propietario || '');
 
     let inputPropMod = $state('');
-    let idPropMod = $derived(data.propietarios.find(p => p.nombre_completo === inputPropMod)?.id_propietario || '');
+    let idPropMod = $derived(data.propietarios.find((p: { nombre_completo: string; id_propietario: number }) => p.nombre_completo === inputPropMod)?.id_propietario || '');
     // -------------------------------------------------------------------
 
     // 3. Estados para Ver y Modificar
@@ -31,6 +31,8 @@
 
     let editando = $state(false);
     let mascotaEditada = $state({ id_mascota: 0, nombre: '', especie: '', raza: '', id_propietario: 0 });
+
+    let mostrarExitoRegistro = $state(false);
 
     function verDetalle(mascota: any) {
         mascotaViendo = { ...mascota };
@@ -67,7 +69,6 @@
     <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 900px; margin: 0 auto; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         
         <h2 style="color: #111827; margin-top: 0; font-size: 1.5rem; margin-bottom: 0.25rem;">Gestión de mascotas</h2>
-        <p style="font-size: 0.85rem; color: #6b7280; margin-top: 0; margin-bottom: 1.5rem;">Pantalla IU-03, caso de uso CU-03, requisito FR-03</p>
 
         <!-- Bloque 1: Búsqueda y Tabla -->
         <div style="border: 1px dashed #d1d5db; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
@@ -75,8 +76,10 @@
             <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
                 <input type="text" bind:value={inputBusqueda} placeholder="Buscar mascota" style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" />
                 <button type="button" onclick={realizarBusqueda} style="background-color: white; color: #1e3a8a; border: 1px solid #1e3a8a; padding: 0.5rem 1.5rem; border-radius: 4px; cursor: pointer;">Buscar</button>
-                <button type="button" onclick={() => mostrandoRegistro = true} style="background-color: #1e3a8a; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 4px; cursor: pointer;">Registrar mascota</button>
-            </div>
+                <button type="button" onclick={() => { mostrandoRegistro = true; mostrarExitoRegistro = false; }} style="background-color: #1e3a8a; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 4px; cursor: pointer;">
+                    Registrar mascota
+                </button>            
+                </div>
 
             <table style="width: 100%; border-collapse: collapse; text-align: left;">
                 <thead>
@@ -120,19 +123,27 @@
                     <div style="background-color: #fee2e2; color: #b91c1c; padding: 0.75rem; border: 1px solid #f87171; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem;">{form.error}</div>
                 {/if}
 
-                {#if form?.success && !form?.successEditar}
-                    <div style="background-color: #dcfce3; color: #166534; padding: 0.75rem; border: 1px solid #bbf7d0; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem;">Mascota registrada exitosamente.</div>
+                {#if mostrarExitoRegistro}
+                    <div style="background-color: #dcfce3; color: #166534; padding: 0.75rem; border: 1px solid #bbf7d0; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem;">
+                        Mascota registrada exitosamente.
+                    </div>
                 {/if}
 
                 <form method="POST" action="?/registrar" use:enhance={() => {
-                    return async ({ update, result }) => {
-                        await update();
-                        if (result.type === 'success') {
-                            mostrandoRegistro = false; 
-                            inputPropRegistro = ''; // Limpiamos el buscador al tener éxito
-                        }
-                    };
-                }}>
+                return async ({ update, result }) => {
+                    await update(); // Actualiza la tabla por debajo
+                    
+                    if (result.type === 'success') {
+                        mostrarExitoRegistro = true; // 1. Mostramos el mensaje verde
+                        
+                        // 2. Esperamos 2 segundos para que el usuario lo lea, y luego cerramos el formulario
+                        setTimeout(() => {
+                            mostrarExitoRegistro = false;
+                            mostrandoRegistro = false;
+                        }, 2000);
+                    }
+                };
+            }}>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                         <div>
                             <label for="nombre" style="display: block; font-size: 0.85rem; color: #4b5563; margin-bottom: 0.5rem;">Nombre *</label>

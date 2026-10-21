@@ -1,48 +1,75 @@
 <script lang="ts">
     let { data } = $props();
 
+    // Calcular fechas por defecto de forma segura (evita desfases de zona horaria)
+    const fechaActual = new Date();
+    const year = fechaActual.getFullYear();
+    const month = String(fechaActual.getMonth() + 1).padStart(2, '0');
+    const day = String(fechaActual.getDate()).padStart(2, '0');
+    
+    const hoy = `${year}-${month}-${day}`;
+    const inicioMes = `${year}-${month}-01`;
+
     // 1. Estados de los filtros
     let filtroTipoReporte = $state('Ventas');
-    let filtroFechaDesde = $state('');
-    let filtroFechaHasta = $state('');
+    let filtroFechaDesde = $state(inicioMes);
+    let filtroFechaHasta = $state(hoy);
+    let filtroMascota = $state(''); // Vacío o 'Todas' = no filtra
+    let filtroServicio = $state('Todos'); // 'Todos' = no filtra
     
     // 2. Estado visual
     let reporteGenerado = $state(false);
 
-    // 3. Lógica de Filtrado Derivada según el Tipo de Reporte
+    // 3. Catálogos extraídos directamente desde tu +page.server.ts
+    // Usamos Set para evitar nombres duplicados si hay dos mascotas llamadas igual
+    let mascotasUnicas = $derived(
+        data.mascotas ? Array.from(new Set(data.mascotas.map((m: any) => `${m.nombre} (${m.nombre_propietario})`))).sort() : []
+    );
+
+    let serviciosUnicos = $derived(
+        data.servicios ? Array.from(new Set(data.servicios.map((s: any) => s.nombre))).sort() : []
+    );
+
+    // 4. Lógica de Filtrado Derivada según el Tipo de Reporte
     let resultadosActuales = $derived.by(() => {
         if (!reporteGenerado) return [];
 
         let filtrados: any[] = [];
+        const mascotaBuscada = (filtroMascota === 'Todas' || !filtroMascota) ? '' : filtroMascota.split(' (')[0].toLowerCase();
+        const servicioBuscado = (filtroServicio === 'Todos' || !filtroServicio) ? '' : filtroServicio;
 
         if (filtroTipoReporte === 'Ventas') {
-            filtrados = data.datosVentas;
+            filtrados = data.datosVentas || [];
             if (filtroFechaDesde) filtrados = filtrados.filter((v: any) => v.fecha >= filtroFechaDesde);
             if (filtroFechaHasta) filtrados = filtrados.filter((v: any) => v.fecha <= filtroFechaHasta);
+            // Nota: En Ventas no filtramos por mascota/servicio porque tu servidor no envía esos datos aquí
         } 
         else if (filtroTipoReporte === 'Inventario') {
-            // Inventario crítico: Menos de 10 unidades
-            filtrados = (data.productos as any[]).filter(p => p.existencia <= 10).sort((a, b) => a.existencia - b.existencia);
+            filtrados = (data.productos as any[] || []).filter(p => p.existencia <= 10).sort((a, b) => a.existencia - b.existencia);
         }
         else if (filtroTipoReporte === 'Citas') {
-            filtrados = data.datosCitas;
+            filtrados = data.datosCitas || [];
             if (filtroFechaDesde) filtrados = filtrados.filter((c: any) => c.fecha >= filtroFechaDesde);
             if (filtroFechaHasta) filtrados = filtrados.filter((c: any) => c.fecha <= filtroFechaHasta);
+            if (mascotaBuscada) filtrados = filtrados.filter((c: any) => c.nombre_mascota?.toLowerCase().includes(mascotaBuscada));
+            if (servicioBuscado) filtrados = filtrados.filter((c: any) => c.motivo === servicioBuscado);
         }
         else if (filtroTipoReporte === 'Servicios') {
-            filtrados = data.datosServiciosRealizados;
+            filtrados = data.datosServiciosRealizados || [];
             if (filtroFechaDesde) filtrados = filtrados.filter((s: any) => s.fecha >= filtroFechaDesde);
             if (filtroFechaHasta) filtrados = filtrados.filter((s: any) => s.fecha <= filtroFechaHasta);
+            if (mascotaBuscada) filtrados = filtrados.filter((s: any) => s.nombre_mascota?.toLowerCase().includes(mascotaBuscada));
+            if (servicioBuscado) filtrados = filtrados.filter((s: any) => s.nombre_servicio === servicioBuscado);
         }
 
         return filtrados;
     });
 
-    // 4. Métricas Visuales Dinámicas
+    // 5. Métricas Visuales Dinámicas
     let metricas = $derived.by(() => {
         if (filtroTipoReporte === 'Ventas') {
             const total = resultadosActuales.reduce((acc, v) => acc + parseFloat(v.total || 0), 0);
-            return `Ingresos totales: $${total.toFixed(2)}`;
+            return `Ingresos totales: C$ ${total.toFixed(2)}`;
         }
         if (filtroTipoReporte === 'Inventario') {
             return `Productos en riesgo de agotarse: ${resultadosActuales.length}`;
@@ -59,13 +86,19 @@
     });
 
     function generarReporte() {
+        if (filtroTipoReporte !== 'Inventario' && (!filtroFechaDesde || !filtroFechaHasta)) {
+            alert("Por favor, ingrese ambas fechas para generar el reporte.");
+            return;
+        }
         reporteGenerado = true;
     }
 
     function limpiarFiltros() {
         filtroTipoReporte = 'Ventas';
-        filtroFechaDesde = '';
-        filtroFechaHasta = '';
+        filtroFechaDesde = inicioMes; 
+        filtroFechaHasta = hoy;       
+        filtroMascota = ''; 
+        filtroServicio = 'Todos';
         reporteGenerado = false;
     }
 
@@ -76,7 +109,6 @@
         return fechaStr;
     }
 
-    // EL TOQUE ENTERPRISE: Función para exportar a Excel (CSV)
     function exportarCSV() {
         if (resultadosActuales.length === 0) return;
 
@@ -124,7 +156,7 @@
         <div style="border: 1px dashed #d1d5db; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
             <h3 style="margin-top: 0; color: #111827; font-size: 1.1rem; margin-bottom: 1.5rem;">Generar reporte</h3>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                 <div>
                     <label for="tipo-reporte" style="display: block; font-size: 0.85rem; color: #4b5563; margin-bottom: 0.4rem;">Tipo de reporte *</label>
                     <select id="tipo-reporte" bind:value={filtroTipoReporte} onchange={() => reporteGenerado = false} style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box; background: white;">
@@ -135,15 +167,34 @@
                     </select>
                 </div>
                 
-                <!-- Ocultamos las fechas si es el reporte de inventario (que es en tiempo real) -->
+                <div>
+                    <label for="filtro-mascota" style="display: block; font-size: 0.85rem; color: #4b5563; margin-bottom: 0.4rem;">Mascota</label>
+                    <input id="filtro-mascota" type="text" list="lista-mascotas" bind:value={filtroMascota} placeholder="Todas" style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box;" />
+                    <datalist id="lista-mascotas">
+                        {#each mascotasUnicas as m}
+                            <option value={m}></option>
+                        {/each}
+                    </datalist>
+                </div>
+
                 {#if filtroTipoReporte !== 'Inventario'}
                     <div>
-                        <label for="fecha-desde" style="display: block; font-size: 0.85rem; color: #4b5563; margin-bottom: 0.4rem;">Fecha desde</label>
-                        <input id="fecha-desde" type="date" bind:value={filtroFechaDesde} style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box;" />
+                        <label for="fecha-desde" style="display: block; font-size: 0.85rem; color: #4b5563; margin-bottom: 0.4rem;">Fecha desde *</label>
+                        <input id="fecha-desde" type="date" bind:value={filtroFechaDesde} required style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box;" />
                     </div>
                     <div>
-                        <label for="fecha-hasta" style="display: block; font-size: 0.85rem; color: #4b5563; margin-bottom: 0.4rem;">Fecha hasta</label>
-                        <input id="fecha-hasta" type="date" bind:value={filtroFechaHasta} style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box;" />
+                        <label for="fecha-hasta" style="display: block; font-size: 0.85rem; color: #4b5563; margin-bottom: 0.4rem;">Fecha hasta *</label>
+                        <input id="fecha-hasta" type="date" bind:value={filtroFechaHasta} required style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box;" />
+                    </div>
+
+                    <div>
+                        <label for="filtro-servicio" style="display: block; font-size: 0.85rem; color: #4b5563; margin-bottom: 0.4rem;">Servicio</label>
+                        <select id="filtro-servicio" bind:value={filtroServicio} style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box; background: white;">
+                            <option value="Todos">Todos</option>
+                            {#each serviciosUnicos as s}
+                                <option value={s}>{s}</option>
+                            {/each}
+                        </select>
                     </div>
                 {/if}
             </div>
@@ -153,7 +204,6 @@
                 <button type="button" onclick={limpiarFiltros} style="background-color: white; color: #1e3a8a; border: 1px solid #1e3a8a; padding: 0.5rem 1.5rem; border-radius: 4px; cursor: pointer;">Limpiar filtros</button>
                 
                 {#if reporteGenerado && resultadosActuales.length > 0}
-                    <!-- BOTÓN DE EXPORTACIÓN (El Toque Enterprise) -->
                     <button type="button" onclick={exportarCSV} style="background-color: #059669; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 4px; cursor: pointer; margin-left: auto;">↓ Descargar Excel (CSV)</button>
                 {/if}
             </div>
@@ -202,11 +252,11 @@
                                     <td style="padding: 0.75rem; color: #4b5563;">{formatearFecha(r.fecha)}</td>
                                     <td style="padding: 0.75rem; color: #4b5563;">V-000{r.id_venta}</td>
                                     <td style="padding: 0.75rem; color: #4b5563;">{r.elementos}</td>
-                                    <td style="padding: 0.75rem; color: #4b5563; font-weight: bold;">\${parseFloat(r.total).toFixed(2)}</td>
+                                    <td style="padding: 0.75rem; color: #4b5563; font-weight: bold;">C$ {parseFloat(r.total).toFixed(2)}</td>
                                 {:else if filtroTipoReporte === 'Inventario'}
                                     <td style="padding: 0.75rem; color: #4b5563;">{r.nombre}</td>
                                     <td style="padding: 0.75rem; color: #4b5563;">{r.categoria}</td>
-                                    <td style="padding: 0.75rem; color: #4b5563;">\${r.precio}</td>
+                                    <td style="padding: 0.75rem; color: #4b5563;">C$ {parseFloat(r.precio).toFixed(2)}</td>
                                     <td style="padding: 0.75rem; color: {r.existencia <= 5 ? '#dc2626' : '#d97706'}; font-weight: bold;">{r.existencia} u.</td>
                                 {:else if filtroTipoReporte === 'Citas'}
                                     <td style="padding: 0.75rem; color: #4b5563;">{formatearFecha(r.fecha)}</td>

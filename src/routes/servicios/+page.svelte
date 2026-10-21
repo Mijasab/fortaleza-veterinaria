@@ -63,7 +63,6 @@
     <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 950px; margin: 0 auto; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         
         <h2 style="color: #111827; margin-top: 0; font-size: 1.5rem; margin-bottom: 0.25rem;">Gestión de servicios</h2>
-        <p style="font-size: 0.85rem; color: #6b7280; margin-top: 0; margin-bottom: 1.5rem;">Pantalla IU-06, casos de uso CU-08 y CU-09, requisito FR-06</p>
 
         <!-- SECCIÓN 1: Catálogo de Servicios -->
         <div style="border: 1px dashed #d1d5db; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
@@ -93,7 +92,7 @@
                         <tr style="border-bottom: 1px dashed #e5e7eb;">
                             <td style="padding: 0.75rem; color: #4b5563;">{s.nombre}</td>
                             <td style="padding: 0.75rem; color: #4b5563;">{s.tipo}</td>
-                            <td style="padding: 0.75rem; color: #4b5563;">{s.precio}</td>
+                            <td style="padding: 0.75rem; color: #4b5563;">C${s.precio}</td>
                             <td style="padding: 0.75rem;">
                                 <span style="background-color: {s.estado === 'Activo' ? '#e0f2fe' : '#f3f4f6'}; color: {s.estado === 'Activo' ? '#0369a1' : '#6b7280'}; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.8rem; font-weight: bold;">
                                     {s.estado}
@@ -235,7 +234,7 @@
                         </div>
                         <div>
                             <label for="mod_serv_precio" style="display: block; font-size: 0.85rem; color: #4b5563; margin-bottom: 0.4rem;">Precio *</label>
-                            <input id="mod_serv_precio" type="text" name="precio" value={servicioEditado.precio} required style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box;" />
+                            <input id="mod_serv_precio" type="number" name="precio" min="1" value={servicioEditado.precio} required style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box;" />
                         </div>
                         <div>
                             <label for="mod_serv_estado" style="display: block; font-size: 0.85rem; color: #4b5563; margin-bottom: 0.4rem;">Estado *</label>

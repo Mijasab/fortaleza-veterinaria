@@ -7,12 +7,23 @@
     let inputMascota = $state('');
     let filtroFecha = '';
     let filtroMascota = '';
+    let mascotaInput = $state('');
 
     let citasFiltradas = $derived((data?.citas || []).filter((c: any) => {
         const matchFecha = filtroFecha ? c.fecha.includes(filtroFecha) : true;
-        const matchMascota = filtroMascota ? String(c.nombre_mascota).toLowerCase().includes(filtroMascota.toLowerCase()) : true;
+        // Cortamos el string en " (" para buscar solo el nombre de la mascota en la tabla
+        const terminoMascota = filtroMascota ? filtroMascota.split(' (')[0].toLowerCase() : '';
+        const matchMascota = filtroMascota ? String(c.nombre_mascota).toLowerCase().includes(terminoMascota) : true;
         return matchFecha && matchMascota;
     }));
+
+    // Svelte buscará automáticamente el ID cuando el texto coincida
+    let idMascotaSeleccionada = $derived.by(() => {
+        // data.mascotas debe venir de tu +page.server.ts con el innerJoin del propietario
+        if (!data.mascotas) return '';
+        const encontrada = data.mascotas.find((m: any) => `${m.nombre} (${m.nombre_propietario})` === mascotaInput);
+        return encontrada ? encontrada.id_mascota : '';
+    });
 
     function realizarConsulta() {
         filtroFecha = inputFecha;
@@ -104,13 +115,12 @@
     <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 900px; margin: 0 auto; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         
         <h2 style="color: #111827; margin-top: 0; font-size: 1.5rem; margin-bottom: 0.25rem;">Gestión de citas</h2>
-        <p style="font-size: 0.85rem; color: #6b7280; margin-top: 0; margin-bottom: 1.5rem;">Pantalla IU-04, caso de uso CU-04, requisito FR-04</p>
 
         <div style="border: 1px dashed #d1d5db; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
             
             <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
                 <input type="date" id="busqueda_fecha" aria-label="Fecha" bind:value={inputFecha} style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" />
-                <input type="text" id="busqueda_mascota" aria-label="Mascota" bind:value={inputMascota} placeholder="Mascota" style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" />
+                <input type="text" id="busqueda_mascota" list="lista-mascotas" autocomplete="off" aria-label="Mascota" bind:value={inputMascota} placeholder="Mascota" style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;" />
                 <button type="button" onclick={realizarConsulta} style="background-color: white; color: #1e3a8a; border: 1px solid #1e3a8a; padding: 0.5rem 1.5rem; border-radius: 4px; cursor: pointer;">Consultar</button>
                 <button type="button" onclick={() => mostrandoRegistro = true} style="background-color: #1e3a8a; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 4px; cursor: pointer;">Registrar cita</button>
             </div>
@@ -173,11 +183,16 @@
                         </div>
                         <div>
                             <label for="reg_motivo" style="display: block; font-size: 0.85rem; color: #4b5563; margin-bottom: 0.5rem;">Servicio o motivo *</label>
-                            <select id="reg_motivo" name="motivo" required style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box; background: white;">
-                                <option value="Consulta">Consulta</option>
-                                <option value="Vacunación">Vacunación</option>
-                                <option value="Grooming">Grooming</option>
+                            <select id="motivo" name="motivo" required style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box; background-color: white;">
+                                <option value="" disabled selected>Seleccione un motivo</option>
                                 <option value="Cirugía">Cirugía</option>
+                                <option value="Cita por valoración">Cita por valoración</option>
+                                <option value="Consulta">Consulta</option>
+                                <option value="Control / Seguimiento">Control / Seguimiento</option>
+                                <option value="Desparasitación">Desparasitación</option>
+                                <option value="Grooming">Grooming</option>
+                                <option value="Resultado de exámenes de Laboratorio / Diagnóstico">Resultado de exámenes de Laboratorio / Diagnóstico</option>
+                                <option value="Vacunación">Vacunación</option>
                             </select>
                         </div>
                         <div>
@@ -225,7 +240,15 @@
                     <div style="background-color: #fee2e2; color: #b91c1c; padding: 0.75rem; border: 1px solid #f87171; border-radius: 4px; margin-bottom: 1rem;">{form.errorEditar}</div>
                 {/if}
 
-                <form method="POST" action="?/modificar" use:enhance={submitEdicion}>
+                <form method="POST" action="?/modificar" use:enhance={() => {
+                    return async ({ update, result }) => {
+                        await update();
+                        // Solo cerramos el modal si la actualización fue exitosa
+                        if (result.type === 'success') {
+                            cancelarEdicion(); // Asegúrate de que este sea el nombre de tu función para cerrar el modal
+                        }
+                    };
+                }}>
                     <input type="hidden" name="id_cita" value={citaEditada.id_cita} />
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
                         <div>
@@ -236,10 +259,14 @@
                         <div>
                             <label for="mod_motivo" style="display: block; font-size: 0.85rem; color: #4b5563;">Motivo *</label>
                             <select id="mod_motivo" name="motivo" required style="width: 100%; padding: 0.5rem; border: 1px dashed #d1d5db; border-radius: 4px; box-sizing: border-box; background: white;">
-                                <option value="Consulta" selected={citaEditada.motivo === 'Consulta'}>Consulta</option>
-                                <option value="Vacunación" selected={citaEditada.motivo === 'Vacunación'}>Vacunación</option>
-                                <option value="Grooming" selected={citaEditada.motivo === 'Grooming'}>Grooming</option>
                                 <option value="Cirugía" selected={citaEditada.motivo === 'Cirugía'}>Cirugía</option>
+                                <option value="Cita por valoración" selected={citaEditada.motivo === 'Cita por valoración'}>Cita por valoración</option>
+                                <option value="Consulta" selected={citaEditada.motivo === 'Consulta'}>Consulta</option>
+                                <option value="Control / Seguimiento" selected={citaEditada.motivo === 'Control / Seguimiento'}>Control / Seguimiento</option>
+                                <option value="Desparasitación" selected={citaEditada.motivo === 'Desparasitación'}>Desparasitación</option>
+                                <option value="Grooming" selected={citaEditada.motivo === 'Grooming'}>Grooming</option>
+                                <option value="Resultado de exámenes de Laboratorio / Diagnóstico" selected={citaEditada.motivo === 'Resultado de exámenes de Laboratorio / Diagnóstico'}>Resultado de exámenes de Laboratorio / Diagnóstico</option>
+                                <option value="Vacunación" selected={citaEditada.motivo === 'Vacunación'}>Vacunación</option>
                             </select>
                         </div>
                         <div>

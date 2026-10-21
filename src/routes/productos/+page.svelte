@@ -78,7 +78,6 @@
     <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 950px; margin: 0 auto; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         
         <h2 style="color: #111827; margin-top: 0; font-size: 1.5rem; margin-bottom: 0.25rem;">Gestión de productos e inventario</h2>
-        <p style="font-size: 0.85rem; color: #6b7280; margin-top: 0; margin-bottom: 1.5rem;">Pantalla IU-07, casos de uso CU-10 y CU-11, requisitos FR-07 y FR-08</p>
 
         <!-- Barra Superior de Búsqueda -->
         <div style="border: 1px dashed #d1d5db; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
@@ -114,7 +113,7 @@
                         <tr style="border-bottom: 1px dashed #e5e7eb;">
                             <td style="padding: 0.75rem; color: #4b5563;">{p.nombre}</td>
                             <td style="padding: 0.75rem; color: #4b5563;">{p.categoria}</td>
-                            <td style="padding: 0.75rem; color: #4b5563;">{p.precio}</td>
+                            <td style="padding: 0.75rem; color: #4b5563;">C${p.precio}</td>
                             <td style="padding: 0.75rem; color: #4b5563; font-weight: bold;">{p.existencia}</td>
                             <td style="padding: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                 <button type="button" onclick={() => iniciarEdicion(p)} style="background: none; border: none; color: #1e3a8a; cursor: pointer; padding: 0; font-weight: 500;">Modificar</button>

@@ -3,7 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { db } from '../../lib/db';
 // 1. IMPORTANTE: Agrega "propietarios" a la importación del schema
 import { citas, mascotas, propietarios } from '../../lib/db/schema';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, and, ne } from 'drizzle-orm';
 
 export const load: PageServerLoad = async () => {
     const listaCitas = await db
@@ -22,13 +22,13 @@ export const load: PageServerLoad = async () => {
 
     // 2. CORRECCIÓN: Traemos las mascotas pero unidas a sus dueños
     const listaMascotas = await db
-        .select({
-            id_mascota: mascotas.id_mascota,
-            nombre: mascotas.nombre,
-            nombre_propietario: propietarios.nombre_completo
-        })
-        .from(mascotas)
-        .innerJoin(propietarios, eq(mascotas.id_propietario, propietarios.id_propietario));
+    .select({
+        id_mascota: mascotas.id_mascota,
+        nombre: mascotas.nombre,
+        nombre_propietario: propietarios.nombre_completo // ¡Importante traer este campo!
+    })
+    .from(mascotas)
+    .innerJoin(propietarios, eq(mascotas.id_propietario, propietarios.id_propietario));
 
     return {
         citas: listaCitas,
@@ -46,6 +46,18 @@ export const actions: Actions = {
 
         if (!id_mascota || !motivo || !fecha || !hora) {
             return fail(400, { error: 'Todos los campos son obligatorios.' });
+        }
+
+        // Excepción E1: Validar disponibilidad de Fecha y Hora
+        const citaOcupada = await db.query.citas.findFirst({
+            where: and(
+                eq(citas.fecha, fecha),
+                eq(citas.hora, hora)
+            )
+        });
+
+        if (citaOcupada) {
+            return fail(400, { error: 'El horario seleccionado no está disponible. Elija otra fecha u hora.' });
         }
 
         await db.insert(citas).values({
@@ -70,6 +82,19 @@ export const actions: Actions = {
         if (!id_cita || !id_mascota || !motivo || !fecha || !hora) {
             return fail(400, { errorEditar: 'Faltan datos para modificar.' });
         }
+
+        // Excepción E1: Validar disponibilidad al reagendar
+            const citaOcupada = await db.query.citas.findFirst({
+                where: and(
+                    eq(citas.fecha, fecha),
+                    eq(citas.hora, hora),
+                    ne(citas.id_cita, id_cita) // ne = not equal (ignora la cita actual)
+                )
+            });
+
+            if (citaOcupada) {
+                return fail(400, { errorEditar: 'El horario seleccionado no está disponible. Elija otra fecha u hora.' });
+            }
 
         await db.update(citas)
             .set({ id_mascota, motivo, fecha, hora })
